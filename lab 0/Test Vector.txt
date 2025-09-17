@@ -1,0 +1,11 @@
+# Test vector for Lab 0
+# Full Bit Adder
+A B Cin Sum Cout
+0 0 0 0 0
+0 0 1 1 0
+0 1 0 1 0
+0 1 1 0 1
+1 0 0 1 0
+1 0 1 0 1
+1 1 0 0 1
+1 1 1 1 1
