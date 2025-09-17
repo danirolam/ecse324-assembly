@@ -305,9 +305,6 @@
       <a name="fanout" val="1"/>
       <a name="incoming" val="16"/>
     </comp>
-    <comp lib="1" loc="(1040,200)" name="XOR Gate"/>
-    <comp lib="1" loc="(1120,300)" name="XOR Gate"/>
-    <comp lib="1" loc="(1230,590)" name="AND Gate"/>
     <comp lib="1" loc="(190,510)" name="AND Gate">
       <a name="width" val="16"/>
     </comp>
@@ -320,7 +317,6 @@
     <comp lib="1" loc="(220,370)" name="NOT Gate">
       <a name="width" val="16"/>
     </comp>
-    <comp lib="1" loc="(970,250)" name="NOT Gate"/>
     <comp lib="2" loc="(300,350)" name="Multiplexer">
       <a name="width" val="16"/>
     </comp>
@@ -345,26 +341,9 @@
     <comp lib="3" loc="(800,610)" name="Comparator">
       <a name="width" val="16"/>
     </comp>
-    <wire from="(1040,200)" to="(1150,200)"/>
-    <wire from="(1060,310)" to="(1060,320)"/>
-    <wire from="(1120,300)" to="(1120,610)"/>
-    <wire from="(1120,610)" to="(1180,610)"/>
-    <wire from="(1120,720)" to="(1120,940)"/>
-    <wire from="(1120,720)" to="(1220,720)"/>
-    <wire from="(1150,200)" to="(1150,360)"/>
-    <wire from="(1150,360)" to="(1190,360)"/>
-    <wire from="(1150,500)" to="(1150,570)"/>
-    <wire from="(1150,500)" to="(1190,500)"/>
-    <wire from="(1150,570)" to="(1180,570)"/>
-    <wire from="(1180,570)" to="(1190,570)"/>
-    <wire from="(1190,360)" to="(1190,500)"/>
     <wire from="(120,280)" to="(120,320)"/>
     <wire from="(120,320)" to="(140,320)"/>
     <wire from="(120,360)" to="(130,360)"/>
-    <wire from="(1220,620)" to="(1220,720)"/>
-    <wire from="(1220,620)" to="(1240,620)"/>
-    <wire from="(1230,590)" to="(1240,590)"/>
-    <wire from="(1240,590)" to="(1240,620)"/>
     <wire from="(130,360)" to="(130,410)"/>
     <wire from="(130,360)" to="(140,360)"/>
     <wire from="(140,250)" to="(140,320)"/>
@@ -502,13 +481,7 @@
     <wire from="(900,250)" to="(940,250)"/>
     <wire from="(900,310)" to="(1060,310)"/>
     <wire from="(920,610)" to="(920,900)"/>
-    <wire from="(930,200)" to="(930,280)"/>
-    <wire from="(930,200)" to="(980,200)"/>
-    <wire from="(930,280)" to="(1060,280)"/>
     <wire from="(950,430)" to="(950,870)"/>
-    <wire from="(970,250)" to="(980,250)"/>
-    <wire from="(980,180)" to="(980,200)"/>
-    <wire from="(980,220)" to="(980,250)"/>
   </circuit>
   <circuit name="RegisterFile">
     <a name="appearance" val="logisim_evolution"/>
