@@ -1,0 +1,9 @@
+java -jar logisim-evolution-3.9.0dev-all.jar
+
+cd "D:\My FIles\SWDev\School\ECSE 324\lab 1\lab 1 files"
+
+java -jar "D:\Programs\logisim-evolution-3.9.0dev-all.jar" --no-splash cpu.circ --tty table --toplevel-circuit CPU 
+
+Part 4
+
+java -jar "D:\Programs\logisim-evolution-3.9.0dev-all.jar" --no-splash cpu.circ --tty table --toplevel-circuit CPU
