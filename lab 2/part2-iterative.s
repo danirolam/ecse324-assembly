@@ -88,10 +88,6 @@ begin_loop: @ goal: check if number (k) is > target num (A1)
 	B result
 
 	
-	
-	
-	
-	
 rnuma_instead:
 	MOV V6, V4		@ V6 = final value = rnuma
 

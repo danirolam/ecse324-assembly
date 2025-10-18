@@ -85,7 +85,7 @@ recaman:
 	
 	
 rnuma_instead:
-	MOV V5, V3		@ V4 = final value = rnuma
+	MOV V5, V3		@ V5 = final value = rnuma
 
 result:
 	STRB V5, [A2, A1] @ store V5 into array[num]
@@ -99,6 +99,6 @@ base_case:
 	
 recaman_end:
 	POP {V1-V5, LR}
-	BX LR
+	BX LR   @
 
 
