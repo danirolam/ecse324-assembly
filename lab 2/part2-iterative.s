@@ -42,7 +42,6 @@ end_loop:
 	BX LR
 	
 	
-	
 @ pre-- A1: index of the number to calculate
 @ pre-- A2 (*array): base address of the array
 @ post-- A1: calculated Nth Recamam number

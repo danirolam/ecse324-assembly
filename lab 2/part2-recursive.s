@@ -42,7 +42,6 @@ end_loop:
 	BX LR
 	
 	
-	
 @ pre-- A1 (num): index of the number to calculate
 @ pre-- A2 (*array): base address of the array
 @ post-- A1: calculated Nth Recamam number
@@ -65,7 +64,6 @@ recaman:
 	@ checking is rnums is working
 	CMP V2, #0 		@ rnums > 0 
 	BLE rnuma_instead
-	
 	
 	@ search(rnums, array, num-1
 	SUB     V5, A1, #1 @ V5 = num - 1
