@@ -1,13 +1,17 @@
+
 .section .vectors, "ax"
+.align 2
 B _start // reset vector
 B SERVICE_UND // undefined instruction vector
 B SERVICE_SVC // software interrupt vector
 B SERVICE_ABT_INST // aborted prefetch vector
+
 B SERVICE_ABT_DATA // aborted data vector
 .word 0 // unused vector
 B SERVICE_IRQ // IRQ interrupt vector
 B SERVICE_FIQ // FIQ interrupt vector
 
+.align
 
 .equ TIM_ADDR, 0xFFFEC600       @ Base address for the ARM A9 Private Timer
 .equ HEX0_3_ADDR, 0xFF200020    @ Address for HEX0, 1, 2, 3
@@ -171,41 +175,31 @@ END_TIMER_TICK:
     POP {V1, V2, LR}
     BX LR
 
-@ Checks the PB_int_flag and handles button logic
 HANDLE_PB_CLICK:
-    PUSH {V1, V2, V3, LR}
-    LDR V1, =PB_int_flag
-    LDR V2, [V1]                @ V2 = PB_int_flag value
-    CMP V2, #0
-    BEQ END_PB_CLICK            @ If 0, no click, just return
-    
-    @ A button *was* clicked, reset flag
-    MOV V3, #0
-    STR V3, [V1]                @ PB_int_flag = 0
-    
-    @ Now, check which button (V2 holds the mask)
-    
-    @ Check for PB3 (Pause/Resume)
-    TST V2, #PB_PAUSE
+    PUSH {R0, R1, R2, R3, LR}     @ Save A1-A4 (R0-R3) and LR
+    LDR R0, =PB_int_flag
+    LDR R1, [R0]                  @ R1 = PB_int_flag value
+    CMP R1, #0
+    BEQ END_PB_CLICK            
+    MOV R2, #0
+    STR R2, [R0]                  @ PB_int_flag = 0
+
+    TST R1, #PB_PAUSE
     BLNE TOGGLE_PAUSE
-    
-    @ Check if paused. If so, PB0-2 do nothing.
-    LDR V1, [V7]              @ V1 = pause_state
-    CMP V1, #1
-    BEQ END_PB_CLICK            @ If paused, skip rest of checks
-    
-    @ Not paused, so check other buttons
-    TST V2, #PB_REVERSE
+
+    LDR R2, [V7]                  @ R2 = pause_state
+    CMP R2, #1
+    BEQ END_PB_CLICK            
+
+    TST R1, #PB_REVERSE
     BLNE REVERSE_DIRECTION
-    
-    TST V2, #PB_FASTER
+    TST R1, #PB_FASTER
     BLNE SPEED_UP
-    
-    TST V2, #PB_SLOWER
+    TST R1, #PB_SLOWER
     BLNE SLOW_DOWN
 
 END_PB_CLICK:
-    POP {V1, V2, V3, LR}
+    POP {R0, R1, R2, R3, LR}      @ Restore A1-A4 and LR
     BX LR
 
 
@@ -299,8 +293,8 @@ CONFIG_INTERRUPT:
     /* Using register address in R4 and the value in R2 write to
     * (only) the appropriate byte */
     STRB R1, [R4]
-    POP {R4-R5, PC}
-
+    POP {R4-R5, LR}     @ pop R4, R5, and the saved LR back into LR
+    BX LR               @ Branch (return) to the address in LR
 
 /*--- Undefined instructions --------------------------------------*/
 SERVICE_UND:
@@ -374,18 +368,18 @@ KEY_ISR:
     BX LR                     @ Return to SERVICE_IRQ
 
 ARM_TIM_ISR:
-    PUSH {R0, R1, LR}         @ Save scratch registers AND the Link Register
-    
+    PUSH {R0, R1, R2, R3, LR}       @ Save scratch registers (A1-A4)
+
     @ Write '1' to our "flag"
     LDR R0, =tim_int_flag
     MOV R1, #1
     STR R1, [R0]
-    
-    @ Clear the interrupt
-    BL ARM_TIM_clear_INT_ASM
-    
-    POP {R0, R1, PC}          @ Restore registers and return by popping LR into PC
 
+    @ Clear the interrupt
+    BL ARM_TIM_clear_INT_ASM    @ This call uses A2, A3
+
+    POP {R0, R1, R2, R3, LR}        @ Restore scratch registers
+    BX LR                       @ Return to SERVICE_IRQ
 
 
 @ Rotates the message
@@ -408,7 +402,7 @@ ROTATE_MESSAGE:
 @ Reverses the direction of rotation
 REVERSE_DIRECTION:
     PUSH {V1, LR}
-LDR V1, [V8]                            @ V1 = current direction (1 or -1)
+    LDR V1, [V8]                            @ V1 = current direction (1 or -1)
     RSB V1, V1, #0                      @ V1 = 0 - V1 (Flips sign)
     STR V1, [V8]                        @ save the new direction
     POP {V1, LR}
@@ -426,11 +420,11 @@ TOGGLE_PAUSE:
 @ Decreases speed (increases timer duration)
 SLOW_DOWN:
     PUSH {V1, LR}
-    LDR V1, [R4]                        @ V1 = speed_index
+    LDR V1, [R7]                        @ V1 = speed_index
     CMP V1, #0                          @ cmp if speed == 0
     BEQ END_SPEED_CHANGE                @ If yes, do nothing
     SUB V1, V1, #1                      @ speed_index--
-    STR V1, [R4]                        @ save new index
+    STR V1, [R7]                        @ save new index
     BL UPDATE_TIMER_LOAD                @ Helper to update the timer hardware
 
 END_SPEED_CHANGE:
@@ -440,18 +434,18 @@ END_SPEED_CHANGE:
 @ Increases speed (decreases timer duration)
 SPEED_UP:
     PUSH {V1, LR}
-    LDR V1, [R4]                        @ V1 = speed_index
+    LDR V1, [R7]                        @ V1 = speed_index
     CMP V1, #4                          @ Is speed already at max (index 4)?
     BEQ END_SPEED_CHANGE                 @ If yes, do nothing
     ADD V1, V1, #1                      @ speed_index++
-    STR V1, [R4]                        @ Save new index
+    STR V1, [R7]                        @ Save new index
     BL UPDATE_TIMER_LOAD                @ Helper to update the timer hardware
     B END_SPEED_CHANGE                  @ BX LR is in SLOW_DOWN
 
 @ Helper to read new speed_index and update the timer hardware
 UPDATE_TIMER_LOAD:
     PUSH {A1, A2, V1, LR}               @ Save A1, A2 (args for config)
-    LDR V1, [R4]                        @ V1 = new speed_index
+    LDR V1, [R7]                        @ V1 = new speed_index
     LSL V1, V1, #2                      @ V1 = index * 4
     LDR A1, [R5, V1]                    @ A1 = timer_load_values[new_index]
     MOV A2, #0b111                      @ A2 = Enable, Auto, IRQ Enable
@@ -461,43 +455,41 @@ UPDATE_TIMER_LOAD:
 
 @ Displays the 6 characters on the 6 HEX displays
 DISPLAY_MESSAGE:
-    PUSH {V1-V5, LR}                    @ save registers for the loop
-    LDR V1, [V5]                        @ V1 = get message pointer (e.g., &MSG_COFFEE)
-    LDR V2, [V6]                        @ V2 = get rotation offset (e.g., 1)
-    MOV V3, #0                          @ V3 = loop counter i=0 (for display 0 to 5)
+    PUSH {V1-V4, LR}                    @ Don't need to save V5, V6 anymore
+    LDR V1, [V5]                        @ V1 = get message pointer
+    LDR V2, [V6]                        @ V2 = get rotation offset
+    MOV V3, #0                          @ V3 = loop counter i=0
 
 DISPLAY_LOOP:
-    CMP V3, #6                          @ is i < 6?
-    BGE END_DISPLAY_LOOP                @ if not, end
+    CMP V3, #6                          
+    BGE END_DISPLAY_LOOP                
     
-    @ calculate index to show: V4 = i + offset
     ADD V4, V3, V2                      @ V4 = idx
     
     @ handle wrap-around for index (Mod 18)
-    CMP V4, #18                         @ Using 18 for longest message
+    CMP V4, #18                         
     SUBGE V4, V4, #18
     CMP V4, #0
     ADDLT V4, V4, #18
     
-    @ V4 is now the safe message index (0-17)
     LDRB A2, [V1, V4]                   @ A2 = get char code from message[V4]
     
     @ A1 = bitmask for current display (left-to-right)
     MOV A1, #1
-    MOV V5, #5
-    SUB V5, V5, V3                      @ V5 = 5 - i
-    LSL A1, A1, V5                      @ A1 = 1 << (5 - i)
+    MOV A3, #5                          @ USE A3 (scratch register)
+    SUB A3, A3, V3                      @ A3 = 5 - i
+    LSL A1, A1, A3                      @ A1 = 1 << (5 - i)
     
-    @ call driver to write this char
-    PUSH {V1-V5}                        @ save registers before nested call
+    PUSH {V1-V4}                        
     BL HEX_write_ASM
-    POP {V1-V5}                         @ restore registers
+    POP {V1-V4}                         
     
-    ADD V3, V3, #1                      @ i++
+    ADD V3, V3, #1                      
     B DISPLAY_LOOP
 END_DISPLAY_LOOP:
-    POP {V1-V5, LR}
+    POP {V1-V4, LR}
     BX LR
+
 
 @ Updates the LEDs based on pause_state and speed_index
 UPDATE_LEDS:
@@ -505,7 +497,7 @@ UPDATE_LEDS:
     LDR V1, [V7]                        @ V1 = pause_state
     CMP V1, #1
     MOV A1, #0                          @ A1 = 0 (LEDs off) if paused
-    LDRNE V2, [V7]                      @ If NOT paused, V2 = speed_index
+    LDRNE V2, [R7]                      @ If NOT paused, V2 = speed_index
     LSLNE V2, V2, #2                    @ V2 = index * 4
     LDRNE A1, [R6, V2]                  @ A1 = LED_patterns[speed_index]
     
