@@ -88,6 +88,7 @@ HANDLE_SWITCH_CHANGE:
     @ MOV V1, #1
     @ STR V1, [V8]                @ direction = 1 (left)
     
+    
     @ Find the correct new message pointer
     CMP A1, #0x00
     LDRNE V1, =MSG_BLANK        @ Default: load blank message pointer
