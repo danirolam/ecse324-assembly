@@ -67,7 +67,7 @@ UPDATE_DISPLAY:
 UPDATE_LEDS:
     @ Redraw the LEDs
     LDR A1, [V7]                @ A1 = rotation_count
-    LDR V1, =2047
+    LDR V1, = 1023              @ changed requirement
     CMP A1, V1                  @ check if count > 2047
     LDRHI A1, =0x3FF            @ if yes >2047 , load A1 with 0x3FF (all 10 LEDs on)
     BL write_LEDs_ASM           @ write the count value to the LEDs
@@ -85,8 +85,8 @@ HANDLE_SWITCH_CHANGE:
     MOV V1, #0
     STR V1, [V6]                @ rotation_offset = 0
     STR V1, [V7]                @ rotation_count = 0
-    MOV V1, #1
-    STR V1, [V8]                @ direction = 1 (left)
+    @ MOV V1, #1
+    @ STR V1, [V8]                @ direction = 1 (left)
     
     @ Find the correct new message pointer
     CMP A1, #0x00

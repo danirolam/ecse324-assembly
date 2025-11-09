@@ -103,50 +103,67 @@ CHECK_FLAGS:
 @ Checks if the switch value has changed and updates the message
 HANDLE_SWITCH_CHANGE:
     @ A1 holds the new switch value
+    
+    @ @ Reset state
+    @ MOV V1, #0
+    @ STR V1, [V6]                @ rotation_offset = 0
+    @ MOV V1, #1
+    @ STR V1, [V8]                @ direction = 1
+    
+    @ @ Reset speed to default (0.25s)
+    @ MOV V1, #2                  @ V1 = default speed index 2
+    @ STR V1, [R7]                @ save to speed_index
+    @ BL UPDATE_TIMER_LOAD        @ update the timer hardware
+    
+    @ A1 holds the new switch value
     STR A1, [R12]               @ Save new switch value
     
-    @ Reset state
-    MOV V1, #0
-    STR V1, [V6]                @ rotation_offset = 0
-    MOV V1, #1
-    STR V1, [V8]                @ direction = 1
-    
-    @ Reset speed to default (0.25s)
-    MOV V1, #2                  @ V1 = default speed index 2
-    STR V1, [R7]                @ save to speed_index
-    BL UPDATE_TIMER_LOAD        @ update the timer hardware
-    
-    @ Find new message pointer
+    @ Find new message pointer first
     CMP A1, #0x00
-    LDRNE V1, =MSG_BLANK        @ Default: Blank
     LDREQ V1, =MSG_COFFEE       @ if 0x00
-    BEQ SET_MSG_PTR_EXIT
+    BEQ IS_VALID_SWITCH
     
     CMP A1, #0x01
     LDREQ V1, =MSG_CAFE5        @ if 0x01
-    BEQ SET_MSG_PTR_EXIT
+    BEQ IS_VALID_SWITCH
     
     CMP A1, #0x02
     LDREQ V1, =MSG_CAb5         @ if 0x02
-    BEQ SET_MSG_PTR_EXIT
+    BEQ IS_VALID_SWITCH
     
     CMP A1, #0x04
     LDREQ V1, =MSG_ACE          @ if 0x04
-    BEQ SET_MSG_PTR_EXIT       
-
+    BEQ IS_VALID_SWITCH
+    
     CMP A1, #0x08
     LDREQ V1, =MSG_LOADS        @ if 0x08
-    BEQ SET_MSG_PTR_EXIT
+    BEQ IS_VALID_SWITCH
 
     CMP A1, #0x10
     LDREQ V1, =MSG_CAFEBEEF     @ if 0x10
-    BEQ SET_MSG_PTR_EXIT      
+    BEQ IS_VALID_SWITCH
+    
+    @ If gets here, its an invalid switch
+    LDR V1, =MSG_BLANK
+    B SET_MSG_PTR_EXIT          @ Branch, skipping the state reset 
     
     
+IS_VALID_SWITCH:
+    @ A valid switch was found, so reset state
+    MOV R0, #0
+    STR R0, [V6]                @ rotation_offset = 0
+    MOV R0, #1
+    STR R0, [V8]                @ direction = 1
+    
+    @ Reset speed to default (0.25s)
+    MOV R0, #2                  @ R0 = default speed index 2
+    STR R0, [R7]                @ save to speed_index
+    BL UPDATE_TIMER_LOAD        @ update the timer hardware
+
+
 SET_MSG_PTR_EXIT:
     STR V1, [V5]                @ Save the new message pointer
     B CHECK_FLAGS               @ Go back to the main IDLE loop
-
 
 
 
@@ -389,11 +406,11 @@ ROTATE_MESSAGE:
     LDR V2, [V8]                        @ V2 = direction
     ADD V1, V1, V2                      @ offset = offset + direction
     
-    @ Handle wrap-around (for 18-char messages)
-    CMP V1, #18                 
+    @ Handle wrap-around (for 16-char messages)
+    CMP V1, #16             
     MOVEQ V1, #0
     CMP V1, #-1
-    MOVEQ V1, #17
+    MOVEQ V1, #15
     
     STR V1, [V6]                        @ save new rotation_offset
     POP {V1, V2, LR}
@@ -466,11 +483,11 @@ DISPLAY_LOOP:
     
     ADD V4, V3, V2                      @ V4 = idx
     
-    @ handle wrap-around for index (Mod 18)
-    CMP V4, #18                         
-    SUBGE V4, V4, #18
+    @ handle wrap-around for index (Mod 16)
+    CMP V4, #16                        
+    SUBGE V4, V4, #16
     CMP V4, #0
-    ADDLT V4, V4, #18
+    ADDLT V4, V4, #16
     
     LDRB A2, [V1, V4]                   @ A2 = get char code from message[V4]
     
@@ -737,19 +754,19 @@ last_switch_state:
 
 @ Messgaes but now padded to 16 chars
 MSG_COFFEE:
-    .byte 12, 0, 15, 15, 14, 14, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, 0, F, F, E, E
+    .byte 12, 0, 15, 15, 14, 14, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, 0, F, F, E, E (10 blanks)
 MSG_CAFE5:
-    .byte 12, 10, 15, 14, 5, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, A, F, E, 5, BLANK
+    .byte 12, 10, 15, 14, 5, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, A, F, E, 5, BLANK (11 blanks)
 MSG_CAb5:
-    .byte 12, 10, 11, 5, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, A, b, 5, BLANK...
+    .byte 12, 10, 11, 5, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ C, A, b, 5, BLANK... (12 blanks)
 MSG_ACE:
-    .byte 10, 12, 14, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ A, C, E, BLANK...
+    .byte 10, 12, 14, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ A, C, E, BLANK... (13 blanks)
 MSG_BLANK:
-    .byte 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ 18 BLANKS
+    .byte 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 @ 16 BLANKS
 MSG_LOADS:
-    .byte 7, 0, 10, 13, 5, 7, 0, 0, 1, 5, 16, 16, 16, 16, 16, 16, 16, 16
+    .byte 7, 0, 10, 13, 5, 7, 0, 0, 1, 5, 16, 16, 16, 16, 16, 16 @ 7,0,A,d,5,7,0,0,1,5 (6 blanks)
 MSG_CAFEBEEF:
-    .byte 12, 10, 15, 14, 16, 11, 14, 14, 15, 16, 12, 0, 15, 15, 14, 14, 16, 16
+    .byte 12, 10, 15, 14, 16, 11, 14, 14, 15, 16, 12, 0, 15, 15, 14, 14 @ CAFE bEEF C0FFEE (16 chars total)
 
 .align
 
