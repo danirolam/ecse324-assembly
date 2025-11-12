@@ -69,7 +69,7 @@ UPDATE_LEDS:
     LDR A1, [V7]                @ A1 = rotation_count
     LDR V1, = 1023              @ changed requirement
     CMP A1, V1                  @ check if count > 2047
-    LDRHI A1, =0x3FF            @ if yes >2047 , load A1 with 0x3FF (all 10 LEDs on)
+    LDRHI A1, =0x3FF            @ if yes >2047 , load A1 with 0x3FF (all 10 LEDs on) (changed to 1023!)
     BL write_LEDs_ASM           @ write the count value to the LEDs
     
     B MAIN_LOOP                 @ loop forever

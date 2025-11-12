@@ -84,6 +84,11 @@ _start:
 
 IDLE:
 
+    LDR R0, =idle_loop_counter 
+    LDR R1, [R0]               
+    ADD R1, R1, #1             
+    STR R1, [R0]               
+
     BL read_slider_switches_ASM @ A1 = current switch value
     LDR V1, [R12]               @ V1 = last switch value
     CMP A1, V1
@@ -727,7 +732,9 @@ disable_PB_INT_ASM:
 
 
 
-
+.align
+idle_loop_counter:
+    .word 0x0
 
 .align
 
