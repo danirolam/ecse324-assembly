@@ -9,7 +9,7 @@ read_PS2_data_ASM:
     LDR R1, =PS2_DATA_REGISTER  @ load the address of the PS2_data_reg
     LDR R2, [R1]                @ load the value at PS2_data_reg
 
-    @ Check the RVALID (Bit 15) could also compare with 0X8000 to get first bit (similar to below)
+    @ Check the RVALID (Bit 15) could also compare with 0X8000 to get first bit 
     LSR R3, R2, #15             @ moving bit 15 to bit 0
     AND R3, R3, #1              @ R3 AND 0x1
     CMP R3, #1

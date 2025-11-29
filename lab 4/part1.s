@@ -134,3 +134,6 @@ increment_char_x:
 
 all_char_cleared:
     POP {R4, R5, PC}
+
+
+
