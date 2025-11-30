@@ -8,7 +8,7 @@ int read_PS2_data_ASM(char *data);
 void VGA_draw_line(int x1, int y1, int x2, int y2, short color);
 void GoL_draw_grid(short color);
 void GoL_fill_gridxy(int grid_x, int grid_y, short color);
-void GoL_draw_board();
+void GoL_draw_board(short color);
 void VGA_draw_rect(int x, int y, int width, int height, short color);
 
 // Importing Assembly Drivers
@@ -137,13 +137,13 @@ void GoL_fill_gridxy(int grid_x, int grid_y, short color){
 
 
 
-// The Game Board (16x12)
+// The Game Board (16x12) (this is my a race car)
 int board[12][16] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0}, // Glider top
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0}, // Glider mid
-    {0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0}, // Glider bot
+    {0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0}, // Glider top
+    {0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0}, // Glider mid
+    {0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0}, // Glider bot
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -152,6 +152,87 @@ int board[12][16] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
+void GoL_draw_board(short color){
+    for (int y = 0; y < 12; y++){
+        for (int x = 0; x < 16; x ++){
+            if (board[y][x] == 1){
+                GoL_fill_gridxy(x, y, color); // Active cell = white == 1
+            }
+            else {
+                GoL_fill_gridxy(x, y, 0x0000); // Inactive cell = black == 0
+            }
+        }
+    }
+}
+
+
+// Part Game logic: state update (20%)
+int count_neighbours(int grid_x, int grid_y){
+    int count = 0;
+    // check all 8 neighbors of a center cell
+    for (int dy = -1; dy <= 1; dy++){
+        for (int dx = -1; dx <= 1; dx++){
+
+            // Skip the center cell itself
+            if (dx == 0 && dy == 0){
+                continue; 
+            }
+
+            // Neighbor coordinates
+            int nx = grid_x + dx; 
+            int ny = grid_y + dy;
+
+            // Check bounds
+            if (nx >= 0 && nx < 16 && ny >= 0 && ny < 12){
+                if (board[ny][nx] == 1){
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+void GoL_update_step(){
+    // Second data structure that mirrors the GoL board that keeps track of the number of neighbors
+    int new_board[12][16]; 
+    for (int y = 0; y < 12; y++){
+        for (int x= 0; x < 16; x++){
+            int neighbours = count_neighbours(x, y);
+            int current_state = board[y][x];
+
+            // Current cell is active
+            if (current_state == 1){
+                if (neighbours <2 || neighbours > 3){
+                    new_board[y][x] = 0; // Cell dies
+                }
+                else {
+                    new_board[y][x] = 1; // Cell lives
+                }
+               
+                
+            }
+            else {
+                // Current cell is inactive
+                if (neighbours == 3){
+                    new_board[y][x] = 1; // Cell becomes active
+                }
+                else {
+                    new_board[y][x] = 0; // Cell remains inactive
+                }
+            }
+        }
+    }
+    // Copy new_board to board
+    for (int y = 0; y < 12; y++){
+        for (int x = 0; x < 16; x++){
+            board[y][x] = new_board[y][x];
+        }
+    }
+    GoL_draw_board(0xF800); 
+
+}
+
 
 
 int main() {
@@ -160,9 +241,85 @@ int main() {
 
     GoL_draw_grid(0xFFFF); // Draw Grid
 
-    GoL_fill_gridxy(0, 0, 0xF800);
-    GoL_fill_gridxy(5, 5, 0x07E0);    
+    // GoL_fill_gridxy(0, 0, 0xF800);
+    // GoL_fill_gridxy(5, 5, 0x07E0);    
+    GoL_draw_board(0xF800);
 
-    while(1); 
+    // Cursor setup cooe 0 to 15, 0 to 11
+    int cursor_x = 0;
+    int cursor_y = 0;
+    GoL_fill_gridxy(cursor_x, cursor_y, 0x001F); // Blue cursor
+    char keyboard_data;
+    char last_byte = 0;
+
+
+    while(1){
+        if (read_PS2_data_ASM(&keyboard_data)){
+            // Keyboard sends F0 when a key is released too, we ignore it 
+            if (last_byte == (char)0xF0){
+                last_byte = keyboard_data; 
+                continue;
+            }
+            if (keyboard_data == (char)0xF0){
+                last_byte = keyboard_data;
+                continue;
+            }
+
+            if (board[cursor_y][cursor_x] == 1){
+                GoL_fill_gridxy(cursor_x, cursor_y, 0xF800); // Red for active cell
+            }
+            else {
+                GoL_fill_gridxy(cursor_x, cursor_y, 0x0000); // Black for inactive cell
+            }
+
+            // Process key presses
+            if (keyboard_data == (char)0x1D){ // W 
+                if (cursor_y > 0){
+                    cursor_y--;
+                }
+            }
+            else if (keyboard_data == (char)0x1B){ // S 
+                if (cursor_y < 11){
+                    cursor_y++;
+                }
+            }
+            else if (keyboard_data == (char)0x1C){ // A 
+                if (cursor_x > 0){
+                    cursor_x--;
+                }
+            }
+            else if (keyboard_data == (char)0x23){ //D 
+                if (cursor_x < 15){
+                    cursor_x++;
+                }
+            }
+            else if (keyboard_data == (char)0x29){ 
+                // Toggle cell state
+                if (board[cursor_y][cursor_x] == 1){
+                    board[cursor_y][cursor_x] = 0;
+                    GoL_fill_gridxy(cursor_x, cursor_y, 0x0000); // Set to black
+                }
+                else {
+                    board[cursor_y][cursor_x] = 1;
+                    GoL_fill_gridxy(cursor_x, cursor_y, 0xF800); // Set to red
+                }
+
+            }
+            else if (keyboard_data == 0x31){
+                GoL_update_step();
+            }
+
+        }
+
+        
+
+
+        // Draw new cursor
+        GoL_fill_gridxy(cursor_x, cursor_y, 0x001F); // Draw new blue cursor
+
+        last_byte = keyboard_data; // Update last byte
+    
+        
+    }
     return 0;
 }
