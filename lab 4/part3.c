@@ -7,7 +7,9 @@ void VGA_clear_charbuff_ASM();
 int read_PS2_data_ASM(char *data);
 void VGA_draw_line(int x1, int y1, int x2, int y2, short color);
 void GoL_draw_grid(short color);
+void GoL_fill_gridxy(int grid_x, int grid_y, short color);
 void GoL_draw_board();
+void VGA_draw_rect(int x, int y, int width, int height, short color);
 
 // Importing Assembly Drivers
 void VGA_clear_pixelbuff_ASM(){
@@ -72,6 +74,9 @@ void VGA_draw_line(int x1, int y1, int x2, int y2, short color){
     if (x1 == x2){
         // Vertical line
 
+        // make sure y1 is less than y2
+        // swap if necessary
+        // not really needed since we control the inputs, but good practice
         if (y1 > y2){
             int temp = y1;
             y1 = y2;
@@ -106,6 +111,32 @@ void GoL_draw_grid(short color){
     }
 }
 
+
+// Part 3.2
+void VGA_draw_rect(int x1, int y1, int width, int height, short color){
+    for (int y = y1; y <= height; y++){
+        VGA_draw_line(x1, y, width, y, color);
+    }
+}
+
+// Fills a specific grid cell with a color (0-15, 0-11)
+void GoL_fill_gridxy(int grid_x, int grid_y, short color){
+    // Calculate pixel cooridinates
+    // * 20 because each grid cell is 20x20 pixels (this give the top left pixel of the cell)
+    int start_x = grid_x * 20;
+    int start_y = grid_y * 20;
+
+    // +1 and + 19 is to account for the grid lines (not to overwrite them)
+    int x1 = start_x + 1; 
+    int y1 = start_y + 1;
+    int x2 = start_x + 19;
+    int y2 = start_y + 19;
+    VGA_draw_rect(x1, y1, x2, y2, color);
+
+}
+
+
+
 // The Game Board (16x12)
 int board[12][16] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -129,6 +160,8 @@ int main() {
 
     GoL_draw_grid(0xFFFF); // Draw Grid
 
+    GoL_fill_gridxy(0, 0, 0xF800);
+    GoL_fill_gridxy(5, 5, 0x07E0);    
 
     while(1); 
     return 0;
