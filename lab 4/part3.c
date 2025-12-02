@@ -1,3 +1,16 @@
+// Implemented Functionality:
+//  * - Part 1: VGA Driver (Converted to C/Inline ASM)
+//  * - Part 2: PS/2 Driver (Converted to C/Inline ASM)
+//  * - Part 3: Game of Life
+//  * - Grid Drawing
+//  * - Cursor Movement (WASD)
+//  * - Cell Toggling (Space)
+//  * - Game Logic Update (N)
+//  * - Double Buffering for State Update
+//  * -> My tests show that everything is working as inteneded
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -315,7 +328,12 @@ int main() {
 
 
         // Draw new cursor
-        GoL_fill_gridxy(cursor_x, cursor_y, 0x001F); // Draw new blue cursor
+        if (board[cursor_y][cursor_x] == 1){
+            GoL_fill_gridxy(cursor_x, cursor_y, 0xA21F); // Draw other color if cell is active
+        }
+        else {
+            GoL_fill_gridxy(cursor_x, cursor_y, 0x001F); // Draw new blue cursor for inactive cell
+        }
 
         last_byte = keyboard_data; // Update last byte
     
